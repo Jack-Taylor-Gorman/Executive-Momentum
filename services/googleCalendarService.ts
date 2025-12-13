@@ -1,12 +1,7 @@
 import { ScheduleEvent, EventType } from "../types";
 
-// Types for the Google API globally available via script tags
-declare global {
-  interface Window {
-    gapi: any;
-    google: any;
-  }
-}
+// Removed "declare global" to prevent TypeScript build conflicts.
+// We will access window.gapi and window.google via (window as any).
 
 const SCOPES = 'https://www.googleapis.com/auth/calendar';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
@@ -14,20 +9,38 @@ const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/
 let tokenClient: any;
 let gapiInited = false;
 let gisInited = false;
+let currentClientId = '';
 
-// Robustly wait for a global variable to be defined (gapi or google)
-const waitForGlobal = (key: 'gapi' | 'google', timeout = 5000): Promise<void> => {
+// Helper to inject script if missing
+const injectScript = (src: string, id: string): Promise<void> => {
   return new Promise((resolve, reject) => {
-    if (window[key]) return resolve();
+    if (document.getElementById(id)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.id = id;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = (e) => reject(new Error(`Failed to load script ${src}: ${e}`));
+    document.head.appendChild(script);
+  });
+};
+
+const waitForGlobal = (key: string, timeout = 5000): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if ((window as any)[key]) return resolve();
 
     const start = Date.now();
     const interval = setInterval(() => {
-      if (window[key]) {
+      if ((window as any)[key]) {
         clearInterval(interval);
         resolve();
       } else if (Date.now() - start > timeout) {
         clearInterval(interval);
-        reject(new Error(`Timeout: 'window.${key}' did not load. Check internet connection.`));
+        reject(new Error(`Timeout waiting for window.${key}`));
       }
     }, 100);
   });
@@ -39,6 +52,14 @@ const waitForGlobal = (key: 'gapi' | 'google', timeout = 5000): Promise<void> =>
  */
 export const preloadGoogleScripts = async () => {
   try {
+    // Attempt to load if not present in DOM
+    if (!document.getElementById('gapi-script')) {
+      await injectScript('https://apis.google.com/js/api.js', 'gapi-script');
+    }
+    if (!document.getElementById('google-identity-script')) {
+      await injectScript('https://accounts.google.com/gsi/client', 'google-identity-script');
+    }
+
     await Promise.all([waitForGlobal('gapi'), waitForGlobal('google')]);
     return true;
   } catch (e) {
@@ -48,36 +69,46 @@ export const preloadGoogleScripts = async () => {
 };
 
 export const initGapiClient = async (clientId: string): Promise<void> => {
-  // 1. Ensure scripts are present
-  await Promise.all([waitForGlobal('gapi'), waitForGlobal('google')]);
+  // 1. Ensure scripts are present (Double check)
+  await preloadGoogleScripts();
+
+  const gapi = (window as any).gapi;
+  const google = (window as any).google;
+
+  if (!gapi || !google) {
+    throw new Error("Google API scripts failed to load. Check your ad blocker or internet connection.");
+  }
 
   // 2. Load GAPI Client Library
   if (!gapiInited) {
     await new Promise<void>((resolve, reject) => {
-      window.gapi.load('client', {
+      gapi.load('client', {
         callback: resolve,
         onerror: () => reject(new Error("Failed to load gapi.client")),
       });
     });
     
-    await window.gapi.client.init({
+    await gapi.client.init({
       discoveryDocs: [DISCOVERY_DOC],
     });
     gapiInited = true;
   }
 
   // 3. Initialize GIS (Token Client)
-  if (!gisInited || !tokenClient) {
-    tokenClient = window.google.accounts.oauth2.initTokenClient({
+  // We re-initialize if the client ID changes or was never set
+  if (!gisInited || !tokenClient || currentClientId !== clientId) {
+    console.log("[GoogleAuth] Initializing Token Client for Origin:", window.location.origin);
+    tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: clientId,
       scope: SCOPES,
       callback: () => {}, // Defined at request time via Promise wrapper below
     });
     gisInited = true;
+    currentClientId = clientId;
   }
 };
 
-export const requestAccessToken = (): Promise<void> => {
+export const requestAccessToken = (forceConsent: boolean = false): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (!tokenClient) {
       reject(new Error("Google Client not initialized."));
@@ -93,9 +124,13 @@ export const requestAccessToken = (): Promise<void> => {
       }
     };
 
+    const gapi = (window as any).gapi;
+
+    console.log("[GoogleAuth] Requesting Access Token...");
     // Trigger the popup
-    // Note: This must be called inside a user gesture handler (click) to avoid blocking
-    if (window.gapi.client.getToken() === null) {
+    // If forcing consent (or first time), use 'consent'
+    // Otherwise try silent/auto selection
+    if (forceConsent || gapi.client.getToken() === null) {
       tokenClient.requestAccessToken({ prompt: 'consent' });
     } else {
       tokenClient.requestAccessToken({ prompt: '' });
@@ -113,7 +148,8 @@ export const listUpcomingEvents = async (targetDate: Date): Promise<string> => {
   timeMax.setHours(23, 59, 59, 999);
 
   try {
-    const response = await window.gapi.client.calendar.events.list({
+    const gapi = (window as any).gapi;
+    const response = await gapi.client.calendar.events.list({
       'calendarId': 'primary',
       'timeMin': timeMin.toISOString(),
       'timeMax': timeMax.toISOString(),
@@ -185,7 +221,8 @@ export const exportScheduleToCalendar = async (events: ScheduleEvent[], targetDa
     };
 
     try {
-      await window.gapi.client.calendar.events.insert({
+      const gapi = (window as any).gapi;
+      await gapi.client.calendar.events.insert({
         'calendarId': 'primary',
         'resource': gCalEvent,
       });

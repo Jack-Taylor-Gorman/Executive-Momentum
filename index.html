@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Executive Momentum Advisor</title>
+    <meta name="referrer" content="origin" />
+    <meta name="description" content="Executive Momentum: Priority Management System for High-Performance Operators." />
+    <title>Executive Momentum</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -14,10 +16,28 @@
                 900: '#111827',
                 800: '#1f2937',
                 700: '#374151',
+                950: '#030712',
               }
             },
             animation: {
               'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'fade-in': 'fadeIn 0.5s ease-out forwards',
+              'scale-in': 'scaleIn 0.2s ease-out forwards',
+              'slide-in': 'slideIn 0.3s ease-out forwards',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              scaleIn: {
+                '0%': { opacity: '0', transform: 'scale(0.95)' },
+                '100%': { opacity: '1', transform: 'scale(1)' },
+              },
+              slideIn: {
+                 '0%': { transform: 'translateX(100%)' },
+                 '100%': { transform: 'translateX(0)' },
+              }
             }
           }
         }
@@ -38,7 +58,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-900 text-gray-100 antialiased">
+  <body class="bg-gray-950 text-gray-100 antialiased selection:bg-blue-500/30">
     <div id="root"></div>
   </body>
 </html>

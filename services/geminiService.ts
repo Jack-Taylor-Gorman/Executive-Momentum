@@ -1,7 +1,23 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { ScheduleEvent, EventType, DailyPlanResponse } from "../types";
+import { ScheduleEvent, DailyPlanResponse } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAIClient = () => {
+  let apiKey = "";
+  try {
+    // Safely check if process is defined before accessing it
+    if (typeof process !== "undefined" && process.env) {
+      apiKey = process.env.API_KEY || "";
+    }
+  } catch (e) {
+    console.error("Error accessing process.env", e);
+  }
+
+  if (!apiKey) {
+    // Fallback or specific error if needed, but preventing the crash is priority
+    throw new Error("API_KEY is missing. Ensure process.env.API_KEY is available.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 const responseSchema: Schema = {
   type: Type.OBJECT,
@@ -38,6 +54,7 @@ export const generateDailySchedule = async (
   importedEvents: string = ""
 ): Promise<DailyPlanResponse> => {
   
+  const ai = getAIClient();
   const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'long' });
   const dateStr = targetDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 

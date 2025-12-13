@@ -1,3 +1,4 @@
+
 export const JACK_GORMAN_CONTEXT = `
 My name is Jack Gorman. I am a 25 year old entrepreneur working on The Mirth Co.
 
@@ -22,3 +23,7 @@ The Mirth Co is a parent entity for multiple projects, currently focused exclusi
 - Chores: Gaps.
 - Leisure: Japanese chat corners (P4 - cut if busy).
 `;
+
+// TODO: PASTE YOUR CLIENT ID BELOW TO ENABLE ONE-CLICK LOGIN FOR USERS
+// Leave empty to allow users to input their own via the Settings UI
+export const GOOGLE_CLIENT_ID = "";
