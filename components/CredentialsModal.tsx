@@ -30,7 +30,7 @@ export const CredentialsModal: React.FC<Props> = ({ isOpen, onSave, onClose }) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-w-lg w-full p-6 animate-scale-in">
+      <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-w-lg w-full p-6 animate-scale-in overflow-y-auto max-h-[90vh]">
         <div className="flex justify-between items-start mb-6">
             <div>
               <h2 className="text-xl font-bold text-white tracking-tight">System Configuration</h2>
@@ -59,6 +59,31 @@ export const CredentialsModal: React.FC<Props> = ({ isOpen, onSave, onClose }) =
             </div>
           )}
 
+          <div className="bg-blue-900/20 p-4 rounded border border-blue-500/30">
+             <h3 className="text-blue-400 text-xs font-bold uppercase mb-2">How to fix "Error 403: access_denied"</h3>
+             <p className="text-gray-400 text-xs mb-3">
+               This error means Google doesn't trust this website URL yet. You must add it to your Cloud Console.
+             </p>
+             <div className="space-y-3">
+               <div className="bg-black/40 p-2 rounded border border-blue-500/20">
+                 <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">1. Copy this EXACT URL:</p>
+                 <code className="text-green-400 font-mono text-xs select-all block break-all">{currentOrigin}</code>
+                 <p className="text-[10px] text-gray-500 mt-1 italic">(*No trailing slash!)</p>
+               </div>
+               
+               <ol className="list-decimal list-inside text-xs text-gray-400 space-y-2">
+                 <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-blue-400 hover:underline">Google Cloud Console > Credentials</a>.</li>
+                 <li>Click your <strong>OAuth 2.0 Client ID</strong>.</li>
+                 <li>Paste the URL into <strong className="text-white">Authorized Javascript Origins</strong>.</li>
+                 <li>Paste the URL into <strong className="text-white">Authorized Redirect URIs</strong>.</li>
+                 <li>Click <strong>Save</strong>.</li>
+               </ol>
+               <p className="text-xs text-yellow-500 bg-yellow-900/10 p-2 rounded">
+                 <strong>Wait 5 minutes!</strong> It takes time for Google to update their servers.
+               </p>
+             </div>
+          </div>
+
           <div className="space-y-2">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Google Cloud Client ID
@@ -70,9 +95,6 @@ export const CredentialsModal: React.FC<Props> = ({ isOpen, onSave, onClose }) =
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
             />
-            <p className="text-[10px] text-gray-500 leading-relaxed">
-              This ID is stored locally in your browser. Ensure your Google Cloud Console allows requests from: <span className="text-gray-300 font-mono">{currentOrigin}</span>
-            </p>
           </div>
         </div>
 

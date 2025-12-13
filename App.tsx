@@ -108,18 +108,24 @@ const App: React.FC = () => {
       } else {
         const currentOrigin = window.location.origin;
         
-        // Specific help for origin mismatch
-        if (msg.includes('storagerelay') || msg.includes('invalid_request') || msg.includes('400')) {
-             if (confirm(`Configuration Mismatch detected.\n\nEnsure "${currentOrigin}" is added to Authorized Origins & Redirect URIs in Google Cloud Console.\n\nTry Force Login again?`)) {
-               initiateConnection(clientId, true);
-               return;
+        // Handle "Access Denied" specifically (403)
+        if (msg.includes('access_denied') || msg.includes('403')) {
+             if (confirm(`Connection Rejected (403 Forbidden).\n\nThis almost always means the URL "${currentOrigin}" is not whitelisted in your Google Cloud Console.\n\nOpen Settings to see instructions?`)) {
+               setIsCredsModalOpen(true);
+             }
+        } 
+        // Handle Storage Relay / Origin Mismatch
+        else if (msg.includes('storagerelay') || msg.includes('invalid_request') || msg.includes('400')) {
+             if (confirm(`Configuration Mismatch.\n\nEnsure "${currentOrigin}" is added to Authorized Origins & Redirect URIs.\n\nOpen Settings?`)) {
+               setIsCredsModalOpen(true);
              }
         } else {
              alert(`Connection Error: ${msg}\n\nPlease check your Client ID.`);
         }
         
         if (!GOOGLE_CLIENT_ID) {
-            localStorage.removeItem('gcal_client_id');
+            // Optional: don't clear it immediately so they can edit it
+            // localStorage.removeItem('gcal_client_id');
         }
       }
       setCalendarConnected(false);
